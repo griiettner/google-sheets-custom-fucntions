@@ -1,51 +1,53 @@
+/**
+ * Row Height and Global Formatting Handler
+ * 
+ * Manages the consistent vertical spacing and basic typography of the spreadsheet.
+ */
+
+/**
+ * Iterates through all sheets and applies standard row heights.
+ */
 function changeRows() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheets = ss.getSheets();
-
-  for (var i = 0; i < sheets.length; i++) {
+  for (var i = 0; ss && i < sheets.length; i++) {
     changeRowsOnSheet_(sheets[i]);
   }
 }
 
+/**
+ * Standardizes row heights and common text formatting across a whole sheet.
+ * 
+ * Logic:
+ * 1. Set Header Row height (40px).
+ * 2. Set all other rows to standard height (30px).
+ * 3. Apply global font family and centering to all data-containing rows.
+ */
 function changeRowsOnSheet_(sheet) {
-  var headerRow = CFG.HEADER_ROW;
-  var indentFormat = '- #,##0.00 ; - #,##0.00 ; 0.00 ; @ ';
+  if (!sheet) return;
 
+  var maxRows = sheet.getMaxRows();
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
-  // Using maxRows to ensure even empty rows get the correct height
-  var maxRows = sheet.getMaxRows();
 
-  // --------------------
-  // Header row (row 1)
-  // --------------------
-  sheet.setRowHeight(headerRow, CFG.HEADER_ROW_HEIGHT);
+  // --- 1. SET VERTICAL SPACING ---
+  
+  // Header row is slightly taller for visual emphasis
+  sheet.setRowHeight(CFG.HEADER_ROW, CFG.HEADER_ROW_HEIGHT);
 
-  if (lastCol > 0) {
-    sheet
-      .getRange(headerRow, 1, 1, lastCol)
-      .setFontSize(11)
-      .setFontWeight('bold')
-      .setFontFamily(CFG.FONT_FAMILY)
-      .setVerticalAlignment('middle')
-      .setNumberFormat(indentFormat);
+  // All other rows follow the standard 30px density
+  if (maxRows > 1) {
+    sheet.setRowHeights(2, maxRows - 1, CFG.ROW_HEIGHT);
   }
 
-  // --------------------
-  // Data rows (All remaining rows)
-  // --------------------
-  if (maxRows > headerRow) {
-    // Set row heights for ALL rows
-    sheet.setRowHeights(headerRow + 1, maxRows - headerRow, CFG.ROW_HEIGHT);
-  }
+  // --- 2. GLOBAL FORMATTING ---
 
-  // Only apply expensive formatting (font, alignment) to rows with data
-  if (lastRow > headerRow && lastCol > 0) {
-    sheet
-      .getRange(headerRow + 1, 1, lastRow - headerRow, lastCol)
-      .setFontFamily(CFG.FONT_FAMILY)
-      .setVerticalAlignment('middle')
-      .setNumberFormat(indentFormat);
+  // Only apply expensive formatting to the range that actually has content
+  if (lastRow > 1 && lastCol > 0) {
+    var dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
+    
+    dataRange.setFontFamily(CFG.FONT_FAMILY)
+             .setVerticalAlignment('middle')
+             .setHorizontalAlignment('center');
   }
 }
-

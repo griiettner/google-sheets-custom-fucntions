@@ -1,35 +1,44 @@
+/**
+ * White Grid Style Handler
+ * 
+ * Replaces the default grey Google Sheets gridlines with custom white borders.
+ * This provides a cleaner 'Application' look while maintaining the benefit of visible cell boundaries.
+ */
+
+/**
+ * Iterates through all sheets and applies the white grid style.
+ */
 function changeGridStyleAll() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  ss.getSheets().forEach(function (sheet) {
-    changeGridStyle({ sheet: sheet });
-  });
+  var sheets = ss.getSheets();
+  for (var i = 0; ss && i < sheets.length; i++) {
+    changeGridStyle(sheets[i]);
+  }
 }
 
-function changeGridStyle(ctx) {
-  Logger.log('[changeGridStyle] Called.');
-  var sheet = ctx.sheet;
-  if (!sheet) {
-    Logger.log('[changeGridStyle] Error: No sheet provided in context.');
-    return;
-  }
-  Logger.log('[changeGridStyle] Sheet Name: ' + sheet.getName());
+/**
+ * Applies white borders to every cell in the sheet and hides the default system gridlines.
+ * 
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The target sheet.
+ */
+function changeGridStyle(sheet) {
+  if (!sheet) return;
+  
+  Logger.log('[changeGridStyle] Applying white grid to: ' + sheet.getName());
 
-  // Optional: hide default gridlines so you only see your custom "white grid"
+  // Use getMaxRows/Cols to ensure the border reaches the very edge of the 'canvas'
+  var rows = sheet.getMaxRows();
+  var cols = sheet.getMaxColumns();
+  
+  // Hide the standard browser grid
   sheet.setHiddenGridlines(true);
 
-  // Use Max dimensions to cover the whole visible sheet, not just content
-  var maxRow = sheet.getMaxRows();
-  var maxCol = sheet.getMaxColumns();
-  Logger.log('[changeGridStyle] Dimensions: ' + maxRow + ' rows x ' + maxCol + ' cols.');
-
-  var range = sheet.getRange(1, 1, maxRow, maxCol);
-
-  // Draw a full grid using borders (white)
-  range.setBorder(
-    true, true, true, true,  // top, left, bottom, right
-    true, true,              // vertical, horizontal
-    '#ffffff',               // border color
+  // Apply custom white borders to the entire sheet range
+  var fullRange = sheet.getRange(1, 1, rows, cols);
+  
+  fullRange.setBorder(
+    true, true, true, true, true, true, 
+    '#ffffff', 
     SpreadsheetApp.BorderStyle.SOLID
   );
-  Logger.log('[changeGridStyle] Borders applied.');
 }

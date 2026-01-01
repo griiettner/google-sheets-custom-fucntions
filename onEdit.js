@@ -1,46 +1,57 @@
+/**
+ * Global onEdit Trigger
+ * 
+ * Fires whenever a cell value is changed. 
+ * Orchestrates real-time visual updates (Headers, Zebras) and functional routing.
+ */
 function onEdit(e) {
   if (!e || !e.range) return;
   
-  const range = e.range;
-  const sheet = range.getSheet();
-  const sheetName = sheet.getName();
-  Logger.log(range)
-  Logger.log(sheet)
-  Logger.log(sheetName)
-
   var ctx = editContext(e);
-  editHeaderTheme(ctx);
-  editZebraTheme(ctx);
-  changeRows();
-  editRowTemplate(ctx);
 
-  // 1. Validation: Only run if correct column and not the settings sheet
-  if (range.getColumn() !== CFG.ACTION_COL || sheetName === CFG.SETTINGS_SHEET_NAME) {
+  // --- 1. REAL-TIME DESIGN ENGINE ---
+  // Re-run theme and structure checks on every edit to ensure dividers and colors stay synced.
+  editHeaderTheme(ctx);   // Updates section themes and splitters if header content changed
+  editZebraTheme(ctx);    // Adjusts alternating row background logic
+  changeRows();           // Ensures row heights remain consistent
+  editRowTemplate(ctx);   // Handles new row initialization and separator styling
+
+  // --- 2. FUNCTIONAL ROUTER (ACTION_COL) ---
+  // Logic below this point is reserved for automated workflows triggered in the ACTION_COL.
+  
+  var sheet = ctx.sheet;
+  var range = ctx.range;
+  
+  // Guard: Only process specific columns, and never touch the settings sheet
+  if (range.getColumn() !== CFG.ACTION_COL || sheet.getName() === CFG.SETTINGS_SHEET_NAME) {
     return;
   }
 
   var actionValue = e.value;
-  const dependentCell = sheet.getRange(range.getRow(), CFG.DEPENDENT_COL);
+  var dependentCell = sheet.getRange(range.getRow(), CFG.DEPENDENT_COL);
 
-  // 2. Initial Reset
+  // Reset the dependent cell before applying new logic
   dependentCell.clearDataValidations();
   dependentCell.clearContent();
 
-  // 3. Router: Route to specific logic handlers
   if (!actionValue) return;
 
+  // Route the action to the dedicated handler
   switch (actionValue) {
     case CFG.TEXT_MATCH:
     case CFG.TEXT_PLAIN: {
+      // Direct text modes require no special dependent cell logic
       break;
     }
 
     case CFG.CUSTOM_SELECT: {
+      // Triggers a custom dropdown build
       editCustomSelect(sheet, dependentCell);
       break;
     }
 
     default: {
+      // General dependent cell validation logic
       editDependentCell(e, actionValue, dependentCell);
     }
   }
