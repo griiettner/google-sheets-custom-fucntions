@@ -16,18 +16,44 @@ var LibRows = (function () {
     if (!sheet) return;
     
     var layout = LibSections.getLayout(sheet);
-    var lastRow = sheet.getLastRow();
-    
-    // Start zebra from the first data row (usually row 2)
+    var globalLastRow = sheet.getLastRow();
     var startRow = CFG.TEMPLATE_ROW; 
-    if (lastRow < startRow) return;
+    
+    if (globalLastRow < startRow) return;
 
-    Logger.log('[LibRows.applyZebraAll] Logic start for sheet: ' + sheet.getName());
+    Logger.log('[LibRows.applyZebraAll] Independent zebra scaling enabled.');
 
-    // Apply zebra logic to each section independently
-    _applySectionZebra(sheet, layout.primary, 'PRIMARY', startRow, lastRow);
-    _applySectionZebra(sheet, layout.secondary, 'SECONDARY', startRow, lastRow);
-    _applySectionZebra(sheet, layout.tertiary, 'TERTIARY', startRow, lastRow);
+    // Calculate section-specific last rows based on content within their column boundaries
+    var pLast = _getSectionLastRow(sheet, layout.primary, startRow, globalLastRow);
+    var sLast = _getSectionLastRow(sheet, layout.secondary, startRow, globalLastRow);
+    var tLast = _getSectionLastRow(sheet, layout.tertiary, startRow, globalLastRow);
+
+    // Apply zebra logic to each section independently with its own stopping point
+    _applySectionZebra(sheet, layout.primary, 'PRIMARY', startRow, pLast);
+    _applySectionZebra(sheet, layout.secondary, 'SECONDARY', startRow, sLast);
+    _applySectionZebra(sheet, layout.tertiary, 'TERTIARY', startRow, tLast);
+  }
+
+  /**
+   * Scans the specific columns of a section to find the last row containing any text.
+   */
+  function _getSectionLastRow(sheet, section, startRow, globalLastRow) {
+    if (!section) return 0;
+    
+    var startCol = section.start;
+    var numCols = section.end - section.start + 1;
+    var numRows = globalLastRow - startRow + 1;
+    
+    if (numRows <= 0) return 0;
+
+    var values = sheet.getRange(startRow, startCol, numRows, numCols).getValues();
+    for (var r = values.length - 1; r >= 0; r--) {
+      for (var c = 0; c < numCols; c++) {
+        var val = String(values[r][c] == null ? '' : values[r][c]).trim();
+        if (val !== '') return startRow + r;
+      }
+    }
+    return 0;
   }
 
   /**
