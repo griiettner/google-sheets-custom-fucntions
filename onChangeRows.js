@@ -47,7 +47,7 @@ function changeRowsOnSheet_(sheet) {
     var dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
     
     dataRange.setFontFamily(CFG.FONT_FAMILY)
-             .setVerticalAlignment('middle')
-             .setHorizontalAlignment('center');
+      .setVerticalAlignment('middle')
+      .setHorizontalAlignment('left');
   }
 }

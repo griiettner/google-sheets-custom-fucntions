@@ -26,8 +26,10 @@ function editRowTemplate(ctx) {
     
     // If the user tried to merge across sections, break the merge and alert them.
     if (ctx.range.isPartOfMerge()) {
-       ctx.range.breakApart();
-       SpreadsheetApp.getUi().alert('Section Integrity Violation: You cannot merge cells across section dividers.');
+      ctx.range.breakApart();
+      SpreadsheetApp
+        .getUi()
+        .alert('Section Integrity Violation: You cannot merge cells across section dividers.');
     }
     return;
   }
@@ -39,26 +41,26 @@ function editRowTemplate(ctx) {
     
     // Choose the palette matching the section the merge sits in.
     switch (validation.section) {
-        case 'PRIMARY':
-            bg = SEPARATOR.PRIMARY_BG;
-            fg = SEPARATOR.PRIMARY_FG;
-            break;
-        case 'SECONDARY':
-            bg = SEPARATOR.SECONDARY_BG;
-            fg = SEPARATOR.SECONDARY_FG;
-            break;
-        case 'TERTIARY':
-            bg = SEPARATOR.TERTIARY_BG;
-            fg = SEPARATOR.TERTIARY_FG;
-            break;
+      case 'PRIMARY':
+        bg = SEPARATOR.PRIMARY_BG;
+        fg = SEPARATOR.PRIMARY_FG;
+        break;
+      case 'SECONDARY':
+        bg = SEPARATOR.SECONDARY_BG;
+        fg = SEPARATOR.SECONDARY_FG;
+        break;
+      case 'TERTIARY':
+        bg = SEPARATOR.TERTIARY_BG;
+        fg = SEPARATOR.TERTIARY_FG;
+        break;
     }
 
     if (bg && fg) {
       ctx.range.setBackground(bg)
-               .setFontColor(fg)
-               .setFontWeight('bold')
-               .setHorizontalAlignment('center')
-               .setVerticalAlignment('middle');
+        .setFontColor(fg)
+        .setFontWeight('bold')
+        .setHorizontalAlignment('left')
+        .setVerticalAlignment('middle');
     }
     
     // Stop: separators do not inherit normal row validation/formatting

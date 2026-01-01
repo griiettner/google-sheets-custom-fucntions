@@ -37,9 +37,10 @@ function utilGetTheme(name) {
 function utilApplyHeaderStyle(range, theme) {
   if (!range || !theme) return;
   range.setBackground(theme.bg)
-       .setFontColor(theme.fg)
-       .setFontWeight('bold')
-       .setVerticalAlignment('middle');
+    .setFontColor(theme.fg)
+    .setFontWeight('bold')
+    .setHorizontalAlignment('left')
+    .setVerticalAlignment('middle');
 }
 
 /**
@@ -48,9 +49,10 @@ function utilApplyHeaderStyle(range, theme) {
 function utilClearHeaderStyle(range) {
   if (!range) return;
   range.setBackground(null)
-       .setFontColor(null)
-       .setFontWeight('normal')
-       .setVerticalAlignment('bottom');
+    .setFontColor(null)
+    .setFontWeight('normal')
+    .setHorizontalAlignment('left')
+    .setVerticalAlignment('middle');
 }
 
 /**

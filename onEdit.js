@@ -23,7 +23,10 @@ function onEdit(e) {
   var range = ctx.range;
   
   // Guard: Only process specific columns, and never touch the settings sheet
-  if (range.getColumn() !== CFG.ACTION_COL || sheet.getName() === CFG.SETTINGS_SHEET_NAME) {
+  if (
+    range.getColumn() !== CFG.ACTION_COL ||
+    sheet.getName() === CFG.SETTINGS_SHEET_NAME
+  ) {
     return;
   }
 
