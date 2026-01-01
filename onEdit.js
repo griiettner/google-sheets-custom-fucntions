@@ -12,9 +12,9 @@ function onEdit(e) {
   // --- 1. REAL-TIME DESIGN ENGINE ---
   // Re-run theme and structure checks on every edit to ensure dividers and colors stay synced.
   editHeaderTheme(ctx);   // Updates section themes and splitters if header content changed
-  editZebraTheme(ctx);    // Adjusts alternating row background logic
   changeRows();           // Ensures row heights remain consistent
   editRowTemplate(ctx);   // Handles new row initialization and separator styling
+  editZebraTheme(ctx);    // Adjusts alternating row background logic (Run last to override template formatting)
 
   // --- 2. FUNCTIONAL ROUTER (ACTION_COL) ---
   // Logic below this point is reserved for automated workflows triggered in the ACTION_COL.

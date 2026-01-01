@@ -24,6 +24,7 @@ function onChange(e) {
       changeGridStyleAll();   // Apply white gridlines globally
       changeRows();           // Set standard row heights (Header 40px, Data 30px)
       changeHeaderThemeAll(ctx); // Apply Section Library themes
+      changeZebraThemeAll(ctx);  // Apply initial zebra pattern
       break;
 
     /**
