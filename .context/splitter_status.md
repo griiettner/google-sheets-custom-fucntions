@@ -10,24 +10,27 @@ Implemented in `libSections.js`, the splitter system ensures sections are visual
 
 ### Dynamic Layout Parsing
 
-The `getLayout(sheet)` function scans the header row (Row 1) to identify blocks of content separated by empty columns.
+The `getLayout(sheet)` function uses a **Block-Based Detection** system. Instead of looking for the "first blank," it identifies all continuous islands of content in the header row.
 
-- **Primary**: Starts at Column 1. Extends until the first blank header.
-- **Secondary**: Starts after the first blank column, **IF AND ONLY IF** there is actual content following it. If the header row is empty after the Primary block, the Secondary section is considered non-existent.
-- **Tertiary**: Follows the same logic, appearing after the second blank column.
+- **Primary (Block 1)**: Always the first cluster of headers (or starts at Col 1).
+- **Secondary (Block 2)**: The second island of content found after a gap.
+- **Tertiary (Block 3)**: The third island of content found after a second gap.
+- **Delimiters**: The specific columns that sit _between_ these blocks are dynamically identified as delimiters.
 
 ### Boundary Enforcement
 
-The `enforceBoundaries(sheet)` function runs on every structure change (`INSERT_ROW`, `REMOVE_COLUMN`, etc.) and enforces:
+The `enforceBoundaries(sheet)` function enforces the following with a focus on **Data Safety**:
 
 1.  **Frozen Pane**:
-    - **If Secondary Exists**: The pane freezes at the end of the Primary section (or purely at the splitter). This makes the Primary section "sticky" while you scroll horizontally through Secondary/Tertiary.
-    - **If No Secondary**: The pane unfreezes (`setFrozenColumns(0)`).
-2.  **Delimiters (The Splitter Column)**:
-    - The empty column between Primary and Secondary (and Secondary/Tertiary) is automatically:
-      - **Protected**: Locked so users cannot accidentally type in it.
+    - **Header Pinning**: The Header Row (Row 1) is always pinned to the top of the sheet for consistent visibility during vertical scrolling.
+    - **Single Anchor**: Google Sheets only supports one vertical freeze. The pane always freezes at the end of the **Primary** section if Secondary/Tertiary content exists.
+    - **Cleanup**: If secondary content is removed, the pane unfreezes horizontally (`setFrozenColumns(0)`) but remains pinned vertically.
+2.  **Delimiters (Space Splitters)**:
+    - Target columns are automatically:
+      - **Protected**: Soft-locked with a warning to prevent accidental edits.
       - **Styled**: Width set to `25px`, Background set to White.
-    - **Cleanup**: If a section is deleted (e.g., Secondary content removed), the system detects the "orphan" delimiter and unprotects/resets it back to a normal column.
+    - **Non-Destructive**: The system **never** uses `clearContent()` on these columns. If a user types in a gap, the script simply detects it's no longer a delimiter and restores the column width.
+    - **Cleanup**: If a section is moved or deleted, the system detects the "stale" delimiter protections and resets the columns to standard width (100px) and removes the lock.
 
 ## 2. Logical Independence
 

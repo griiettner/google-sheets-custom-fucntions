@@ -86,7 +86,10 @@ var LibSections = (function () {
     try {
         var layout = getLayout(sheet);
 
-        // 1. Splitter (Frozen Columns)
+        // 1. Splitter (Frozen Pane)
+        // Pin Header Row to the top
+        sheet.setFrozenRows(CFG.HEADER_ROW);
+
         // Anchor at end of primary if secondary exists
         if (layout.secondary) {
             sheet.setFrozenColumns(layout.primary.end);
