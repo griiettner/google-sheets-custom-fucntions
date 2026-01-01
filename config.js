@@ -6,14 +6,14 @@ var CFG = Object.freeze({
 
   FONT_FAMILY: 'Verdana',
 
-  MAIN_BG: '#004977',
-  MAIN_FG: '#ffffff',
+  PRIMARY_BG: '#004977',
+  PRIMARY_FG: '#ffffff',
 
-  OPT_BG: '#d03027',
-  OPT_FG: '#ffffff',
+  SECONDARY_BG: '#d03027',
+  SECONDARY_FG: '#ffffff',
 
-  GREY_BG: '#333333',
-  GREY_FG: '#ffffff',
+  TERTIARY_BG: '#333333',
+  TERTIARY_FG: '#ffffff',
 
   ACTION_COL: 4,                         // Column D
   DEPENDENT_COL: 5,                       // Column E
@@ -25,27 +25,32 @@ var CFG = Object.freeze({
   TEXT_CLICK: 'Click',
   TEXT_PLAIN: 'Text Plain',
   TEXT_MATCH: 'Text Match',
-  TEMPLATE_ROW: 2,         // Row that contains the “correct” dropdowns
-  TEMPLATE_CHECK_COL: 2,   // Column B = "Type" dropdown (use a column that always has DV)
+  TEMPLATE_ROW: 2,
+  TEMPLATE_CHECK_COL: 2,
 
 });
 
 var ZEBRA = Object.freeze({
-  MAIN_A: '#ffffff',
-  MAIN_B: '#eef5fb',
+  PRIMARY_A: '#ffffff',
+  PRIMARY_B: '#eef5fb',
 
-  OPT_A: '#ffffff',
-  OPT_B: '#fdeeee',
+  SECONDARY_A: '#ffffff',
+  SECONDARY_B: '#fdeeee',
 
-  OTH_A: '#ffffff',
-  OTH_B: '#f2f2f2',
+  TERTIARY_A: '#ffffff',
+  TERTIARY_B: '#f2f2f2',
 });
 
 var SEPARATOR = Object.freeze({
-  MAIN_BG: '#6692ad',
-  MAIN_FG: '#000000',
-  OPT_BG: '#de6e68',
-  OPT_FG: '#000000',
-  GREY_BG: '#707070',
-  GREY_FG: '#000000',
+  PRIMARY_BG: '#6692ad',
+  PRIMARY_FG: '#000000',
+  SECONDARY_BG: '#de6e68',
+  SECONDARY_FG: '#000000',
+  TERTIARY_BG: '#707070',
+  TERTIARY_FG: '#000000',
+});
+
+var DELIMITER = Object.freeze({
+  WIDTH: 25,
+  BG: '#ffffff', // Clean look
 });

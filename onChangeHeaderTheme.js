@@ -12,73 +12,38 @@ function changeHeaderTheme(ctx) {
   if (!sheet) return;
   var headerRow = CFG.HEADER_ROW;
 
-  var lastCol = sheet.getLastColumn();
-  Logger.log('[changeHeaderTheme] Sheet: ' + sheet.getName() + ' LastCol: ' + lastCol);
+  // Boundary Enforcement (Protect delimiters, etc.)
+  // We can do this here or separately. Doing it here ensures structure exists before painting by color.
+  LibSections.enforceBoundaries(sheet);
 
-  if (lastCol < 1) {
-    // New/Empty sheet: Default A1 to MAIN theme
-    Logger.log('[changeHeaderTheme] Empty sheet detected. Styling A1 as MAIN.');
-    utilApplyHeaderStyle(sheet.getRange(headerRow, 1), utilGetTheme('MAIN'));
-    return;
+  var layout = LibSections.getLayout(sheet);
+  Logger.log('[changeHeaderTheme] Layout: ' + JSON.stringify(layout));
+
+  // 1. PRIMARY Block
+  if (layout.primary && layout.primary.end >= layout.primary.start) {
+     var pRange = sheet.getRange(headerRow, layout.primary.start, 1, layout.primary.end - layout.primary.start + 1);
+     utilApplyHeaderStyle(pRange, { bg: CFG.PRIMARY_BG, fg: CFG.PRIMARY_FG });
   }
 
-  var values = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0];
-
-  var layout = utilComputeLayout_(values, lastCol);
-
-  // ---- MAIN block (1..mainEnd) ----
-  if (layout.mainEnd > 0) {
-    utilApplyHeaderStyle(
-      sheet.getRange(headerRow, 1, 1, layout.mainEnd),
-      utilGetTheme('MAIN')
-    );
+  // 2. DELIMITER 1
+  if (layout.delimiter1) {
+     utilClearHeaderStyle(sheet.getRange(headerRow, layout.delimiter1.col));
   }
 
-  // ---- GAP between MAIN and OPTIONAL (gapStart..gapEnd) ----
-  if (layout.gapStart && layout.gapEnd && layout.gapEnd >= layout.gapStart) {
-    for (var c = layout.gapStart; c <= layout.gapEnd; c++) {
-      var t = utilNormalizeText(values[c - 1]);
-
-      if (!t) {
-        // keep blank gap columns blank (no formatting)
-        utilClearHeaderStyle(sheet.getRange(headerRow, c));
-        continue;
-      }
-
-      // Filled gap column: inherit MAIN if closer to MAIN, OPT if closer to OPT
-      var themeName = utilChooseGapTheme_(layout, c);
-      if (themeName) {
-        utilApplyHeaderStyle(sheet.getRange(headerRow, c), utilGetTheme(themeName));
-      } else {
-        // ambiguous -> leave blank (no formatting)
-        utilClearHeaderStyle(sheet.getRange(headerRow, c));
-      }
-    }
+  // 3. SECONDARY Block
+  if (layout.secondary && layout.secondary.end >= layout.secondary.start) {
+     var sRange = sheet.getRange(headerRow, layout.secondary.start, 1, layout.secondary.end - layout.secondary.start + 1);
+     utilApplyHeaderStyle(sRange, { bg: CFG.SECONDARY_BG, fg: CFG.SECONDARY_FG });
   }
 
-  // ---- OPTIONAL block (optStart..optEnd) ----
-  if (layout.optStart) {
-    utilApplyHeaderStyle(
-      sheet.getRange(headerRow, layout.optStart, 1, layout.optEnd - layout.optStart + 1),
-      utilGetTheme('OPT')
-    );
+  // 4. DELIMITER 2
+  if (layout.delimiter2) {
+     utilClearHeaderStyle(sheet.getRange(headerRow, layout.delimiter2.col));
   }
 
-  // ---- After OPTIONAL: text => GREY, blanks stay blank ----
-  var afterStart = layout.optStart ? (layout.optEnd + 1) : (layout.mainEnd + 1);
-  if (afterStart < 1) afterStart = 1;
-
-  for (var j = afterStart; j <= lastCol; j++) {
-    // Don’t override MAIN or OPT block columns
-    if (j <= layout.mainEnd) continue;
-    if (layout.optStart && j >= layout.optStart && j <= layout.optEnd) continue;
-    if (layout.gapStart && j >= layout.gapStart && j <= layout.gapEnd) continue;
-
-    var txt = utilNormalizeText(values[j - 1]);
-    if (!txt) {
-      utilClearHeaderStyle(sheet.getRange(headerRow, j));
-      continue;
-    }
-    utilApplyHeaderStyle(sheet.getRange(headerRow, j), utilGetTheme('GREY'));
+  // 5. TERTIARY Block (Rest)
+  if (layout.tertiary && layout.tertiary.end >= layout.tertiary.start) {
+     var tRange = sheet.getRange(headerRow, layout.tertiary.start, 1, layout.tertiary.end - layout.tertiary.start + 1);
+     utilApplyHeaderStyle(tRange, { bg: CFG.TERTIARY_BG, fg: CFG.TERTIARY_FG });
   }
 }

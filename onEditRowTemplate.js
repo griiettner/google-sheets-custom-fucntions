@@ -10,51 +10,49 @@ function editRowTemplate(ctx) {
   if (lastCol < 1) return;
 
   // ---------------------------------------------------------
-  // 1. Separator Logic (Merged Rows)
+  // 1. Strict Boundary Check
+  // ---------------------------------------------------------
+  // Ensure the edit does not cross into a delimiter or span multiple sections.
+  var validation = LibSections.validateRange(sheet, ctx.range);
+  if (!validation.valid) {
+    Logger.log('[editRowTemplate] Invalid Range: ' + validation.reason);
+    
+    // Attempt to undo the action if it was a Merge that crossed boundaries
+    // Note: Script cannot easily "Undo" user actions perfectly, but we can try to unmerge
+    if (ctx.range.isPartOfMerge()) {
+       ctx.range.breakApart();
+       SpreadsheetApp.getUi().alert('Action Blocked: You cannot merge cells across section dividers.');
+    }
+    return;
+  }
+
+  // ---------------------------------------------------------
+  // 2. Separator Logic (Merged Rows)
   // ---------------------------------------------------------
   // If the edited range is merged, we treat it as a Separator trigger
   if (ctx.range.isPartOfMerge()) {
-    var headerRow = CFG.HEADER_ROW;
-    
-    // We need the layout to know which section we are in
-    var values = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0];
-    var layout = utilComputeLayout_(values, lastCol);
-    
-    var startCol = ctx.range.getColumn();
-    // Use heuristic to determine section based on start column
+    // Determine section from validation result or re-query
+    // validation.section should return 'PRIMARY', 'SECONDARY', or 'TERTIARY'
     
     var bg, fg;
-
-    // Check overlaps
-    // MAIN is usually on the left (starts at 1)
-    if (layout.mainEnd > 0 && startCol <= layout.mainEnd) {
-      bg = SEPARATOR.MAIN_BG;
-      fg = SEPARATOR.MAIN_FG;
-    } 
-    // OPTIONAL is in the middle/right
-    else if (layout.optStart && startCol >= layout.optStart) {
-      if (layout.optEnd && startCol <= layout.optEnd) {
-         bg = SEPARATOR.OPT_BG;
-         fg = SEPARATOR.OPT_FG;
-      } else {
-         // Could be the gap or after optional?
-         // User specified "Main", "Optional", "Grey".
-         // If it's strictly > optEnd, it's Grey.
-         if (startCol > layout.optEnd) {
-            bg = SEPARATOR.GREY_BG;
-            fg = SEPARATOR.GREY_FG;
-         } else {
-            // Gap or unknown. Defaulting to Grey or ignoring?
-            // Let's assume Grey for "rest".
-            bg = SEPARATOR.GREY_BG;
-            fg = SEPARATOR.GREY_FG;
-         }
-      }
-    } 
-    // GREY (if no optional, or if startCol is passed main)
-    else {
-      bg = SEPARATOR.GREY_BG;
-      fg = SEPARATOR.GREY_FG;
+    
+    switch (validation.section) {
+        case 'PRIMARY':
+            bg = SEPARATOR.PRIMARY_BG;
+            fg = SEPARATOR.PRIMARY_FG;
+            break;
+        case 'SECONDARY':
+            bg = SEPARATOR.SECONDARY_BG;
+            fg = SEPARATOR.SECONDARY_FG;
+            break;
+        case 'TERTIARY':
+            bg = SEPARATOR.TERTIARY_BG;
+            fg = SEPARATOR.TERTIARY_FG;
+            break;
+        default:
+            // Should not happen if valid, but safe fallback
+            bg = SEPARATOR.TERTIARY_BG;
+            fg = SEPARATOR.TERTIARY_FG;
     }
 
     if (bg && fg) {
@@ -70,22 +68,19 @@ function editRowTemplate(ctx) {
   }
 
   // ---------------------------------------------------------
-  // 2. Normal Row Template Logic (Uninitialized Rows)
+  // 3. Normal Row Template Logic (Uninitialized Rows)
   // ---------------------------------------------------------
-
   // Only run if the edited row appears to be "uninitialized"
-  // We check a column that should always have a dropdown (e.g., Type col B)
   var checkCol = CFG.TEMPLATE_CHECK_COL;
   var templateRow = CFG.TEMPLATE_ROW;
 
-  // If we don't have a template row (sheet too small), stop
   if (sheet.getLastRow() < templateRow) return;
 
   var templateDv = sheet.getRange(templateRow, checkCol).getDataValidation();
-  if (!templateDv) return; // template itself has no validation -> nothing to copy
+  if (!templateDv) return;
 
   var currentDv = sheet.getRange(row, checkCol).getDataValidation();
-  if (currentDv) return; // already has dropdowns -> already initialized
+  if (currentDv) return; 
 
   utilApplyRowTemplate_(sheet, templateRow, row, lastCol);
 }
