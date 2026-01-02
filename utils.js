@@ -56,25 +56,26 @@ function utilClearHeaderStyle(range) {
 }
 
 /**
- * Deep copies formatting and data validation from a template row to a target row.
- * Used for initializing new rows added by the user.
+ * Deep copies formatting and data validation from a template row to a target row within specific column bounds.
+ * Used for initializing new rows and restoring section columns after separator removal.
  */
-function utilApplyRowTemplate_(sheet, templateRow, targetRow, lastCol) {
-  if (!sheet || !lastCol) return;
+function utilApplyRowTemplate_(sheet, templateRow, targetRow, startCol, endCol) {
+  if (!sheet || !startCol || !endCol) return;
   
-  var templateRange = sheet.getRange(templateRow, 1, 1, lastCol);
-  var targetRange = sheet.getRange(targetRow, 1, 1, lastCol);
+  var numCols = endCol - startCol + 1;
+  var templateRange = sheet.getRange(templateRow, startCol, 1, numCols);
+  var targetRange = sheet.getRange(targetRow, startCol, 1, numCols);
 
-  // Preserve user-entered data before overwriting the row with template formatting
+  // Preserve user-entered data
   var existingValues = targetRange.getValues();
 
-  // 1) Physical Style Transfer: Copy borders, colors, font settings
-  templateRange.copyFormatToRange(sheet, 1, lastCol, targetRow, targetRow);
+  // 1) Physical Style Transfer (Restricted to section boundaries)
+  templateRange.copyFormatToRange(sheet, startCol, endCol, targetRow, targetRow);
 
-  // 2) Functional Transfer: Copy dropdowns and data validation rules
+  // 2) Functional Transfer: Copy dropdowns and rules
   var dvs = templateRange.getDataValidations(); 
   targetRange.setDataValidations(dvs);
 
-  // 3) Restore Data: Re-apply the user's data so the format copy doesn't wipe their entry
+  // 3) Restore Data
   targetRange.setValues(existingValues);
 }

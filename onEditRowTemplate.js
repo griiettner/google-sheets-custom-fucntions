@@ -53,6 +53,8 @@ function editRowTemplate(ctx) {
 
       if (cellVal === '' && isSeparatorStyled) {
         var fullSectionRowRange = sheet.getRange(row, section.start, 1, section.end - section.start + 1);
+        
+        // 1. Dismantle: Unmerge the full section span and reset visual styles
         fullSectionRowRange.breakApart()
                  .setBackground(null)
                  .setFontColor(null)
@@ -60,6 +62,12 @@ function editRowTemplate(ctx) {
                  .setHorizontalAlignment('left')
                  .setVerticalAlignment('middle')
                  .setBorder(true, true, true, true, true, true, '#ffffff', SpreadsheetApp.BorderStyle.SOLID);
+        
+        // 2. Restore: Force re-initialization of the row columns from the Template Row.
+        // This restores dropdowns, validation, and logic to the newly unmerged cells.
+        // CRITICAL FIX: Only apply to the current section to avoid affecting other sections.
+        utilApplyRowTemplate_(sheet, CFG.TEMPLATE_ROW, row, section.start, section.end);
+        
         return; 
       }
 
@@ -97,6 +105,6 @@ function editRowTemplate(ctx) {
   var currentDv = sheet.getRange(row, checkCol).getDataValidation();
   if (currentDv) return; // Already initialized
 
-  // Synchronize the row formatting and logic
-  utilApplyRowTemplate_(sheet, templateRow, row, lastCol);
+  // Synchronize the row formatting and logic (Full row for new initialization)
+  utilApplyRowTemplate_(sheet, templateRow, row, 1, lastCol);
 }
