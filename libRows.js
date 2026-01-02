@@ -77,6 +77,7 @@ var LibRows = (function () {
         var backgrounds = range.getBackgrounds();
         var alignments = range.getHorizontalAlignments();
         var weights = range.getFontWeights();
+        var wrapStrategies = range.getWrapStrategies();
 
         // 2. Identify Merged Ranges (Separators)
         var mergedRanges = range.getMergedRanges();
@@ -100,7 +101,15 @@ var LibRows = (function () {
           var isSeparator = isSepRow[rowNum];
           var currentBg = (backgrounds[r][0] || '#ffffff').toLowerCase();
 
-          // A. ALIGNMENT & WEIGHT (Enforce on ALL rows to keep them consistent)
+          // A. WRAP STRATEGY (Disable bleeding)
+          if (wrapStrategies[r][0] !== SpreadsheetApp.WrapStrategy.CLIP) {
+            for (var c = 0; c < numCols; c++) {
+              wrapStrategies[r][c] = SpreadsheetApp.WrapStrategy.CLIP;
+            }
+            changed = true;
+          }
+
+          // B. ALIGNMENT & WEIGHT (Enforce on ALL rows to keep them consistent)
           var targetAlign = isSeparator ? 'center' : 'left';
           var targetWeight = isSeparator ? 'bold' : 'normal';
 
@@ -137,6 +146,7 @@ var LibRows = (function () {
           range.setBackgrounds(backgrounds);
           range.setHorizontalAlignments(alignments);
           range.setFontWeights(weights);
+          range.setWrapStrategies(wrapStrategies);
           SpreadsheetApp.flush();
         }
     } catch (e) {
