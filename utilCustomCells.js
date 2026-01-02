@@ -244,6 +244,10 @@ var utilCustomCells = (function () {
         _handleSelectCustom(sheet, row, resultCell, allowPrompt);
         break;
 
+      case 'options-match':
+        _handleOptionsMatch(sheet, row, resultCell, allowPrompt);
+        break;
+
       case 'text':
       case 'disable':
       default:
@@ -253,29 +257,36 @@ var utilCustomCells = (function () {
   }
 
   /**
+   * Core helper to get a source column either from notes or by prompting the user.
+   */
+  function _getOrPromptSourceCol(resultCell, allowPrompt, title) {
+    var note = resultCell.getNote();
+    if (note.indexOf('sourceCol:') === 0) {
+      return note.replace('sourceCol:', '').trim();
+    }
+
+    if (!allowPrompt) return '';
+
+    var ui = SpreadsheetApp.getUi();
+    var response = ui.prompt(title, 
+      'Please enter the COLUMN LETTER (e.g. B, F, K) containing the source values:', 
+      ui.ButtonSet.OK_CANCEL);
+
+    if (response.getSelectedButton() == ui.Button.OK) {
+      var sourceCol = response.getResponseText().toUpperCase().replace(/[^A-Z]/g, '');
+      if (sourceCol) {
+        resultCell.setNote('sourceCol:' + sourceCol);
+        return sourceCol;
+      }
+    }
+    return '';
+  }
+
+  /**
    * Helper to handle 'select-custom' prompting and persistence.
    */
   function _handleSelectCustom(sheet, row, resultCell, allowPrompt) {
-    var note = resultCell.getNote();
-    var sourceCol = '';
-
-    // If already persisted, reuse it
-    if (note.indexOf('sourceCol:') === 0) {
-      sourceCol = note.replace('sourceCol:', '').trim();
-    } else if (allowPrompt) {
-      // Prompt user for column letter
-      var ui = SpreadsheetApp.getUi();
-      var response = ui.prompt('Select Custom Range', 
-        'Please enter the COLUMN LETTER (e.g. B, F, K) containing the options for this dropdown:', 
-        ui.ButtonSet.OK_CANCEL);
-
-      if (response.getSelectedButton() == ui.Button.OK) {
-        sourceCol = response.getResponseText().toUpperCase().replace(/[^A-Z]/g, '');
-        if (sourceCol) {
-          resultCell.setNote('sourceCol:' + sourceCol);
-        }
-      }
-    }
+    var sourceCol = _getOrPromptSourceCol(resultCell, allowPrompt, 'Select Custom Range');
 
     if (sourceCol) {
       try {
@@ -286,6 +297,35 @@ var utilCustomCells = (function () {
         resultCell.setDataValidation(rule);
       } catch (e) {
         Logger.log('[utilCustomCells] select-custom error on col ' + sourceCol + ': ' + e.message);
+      }
+    }
+  }
+
+  /**
+   * Helper to handle 'options-match' prompting and array generation.
+   */
+  function _handleOptionsMatch(sheet, row, resultCell, allowPrompt) {
+    var sourceCol = _getOrPromptSourceCol(resultCell, allowPrompt, 'Options Match Configuration');
+
+    if (sourceCol) {
+      try {
+        var range = sheet.getRange(sourceCol + CFG.TEMPLATE_ROW + ":" + sourceCol);
+        var values = range.getValues();
+        var options = [];
+        
+        for (var i = 0; i < values.length; i++) {
+          var val = String(values[i][0] == null ? '' : values[i][0]).trim();
+          if (val !== '') {
+            options.push(val);
+          }
+        }
+        
+        // Format as JSON array string
+        var arrayStr = JSON.stringify(options);
+        resultCell.setValue(arrayStr);
+        resultCell.clearDataValidations(); // Ensure it's treated as text
+      } catch (e) {
+        Logger.log('[utilCustomCells] options-match error on col ' + sourceCol + ': ' + e.message);
       }
     }
   }
