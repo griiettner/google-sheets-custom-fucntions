@@ -10,9 +10,14 @@ function onEdit(e) {
   var ctx = editContext(e);
 
   // --- 1. REAL-TIME DESIGN ENGINE ---
-  // Re-run theme and structure checks on every edit to ensure dividers and colors stay synced.
-  editHeaderTheme(ctx);   // Updates section themes and splitters if header content changed
-  changeRows();           // Ensures row heights remain consistent
+  // Only update header themes if the header row itself was edited
+  if (ctx.row === CFG.HEADER_ROW) {
+    editHeaderTheme(ctx);
+  }
+
+  // Row heights and global styling (changeRows) now only run on structural changes (onChange)
+  // to prevent alignment 'flicker' and improve performance.
+
   editRowTemplate(ctx);   // Handles new row initialization and separator styling
   editZebraTheme(ctx);    // Adjusts alternating row background logic (Run last to override template formatting)
 
