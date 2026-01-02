@@ -17,18 +17,42 @@ var utilCustomCells = (function () {
     var layout = LibSections.getLayout(sheet);
     if (!layout.primary) return;
 
-    var lastRow = sheet.getLastRow();
-    if (lastRow < CFG.TEMPLATE_ROW) return;
+    var globalLastRow = sheet.getLastRow();
+    var startRow = CFG.TEMPLATE_ROW;
 
-    // 1. Find Column Indices
+    // 1. Calculate section-specific last row (same logic as zebra logic)
+    var primaryLastRow = _getSectionLastRow(sheet, layout.primary, startRow, globalLastRow);
+
+    // 2. Find Column Indices
     var colMap = _getColumnMap(sheet, layout.primary);
     
-    // 2. Apply "Types" (FIELD_TYPE) Logic
+    // 3. Apply "Types" (FIELD_TYPE) Logic
     if (colMap.types) {
-      _applyFieldTypeValidation(sheet, colMap.types, lastRow);
+      _applyFieldTypeValidation(sheet, colMap.types, primaryLastRow);
     }
     
-    // Space for future custom cells (e.g. colMap.other...)
+    // Space for future custom cells...
+  }
+
+  /**
+   * Scans the specific columns of a section to find the last row containing any text.
+   */
+  function _getSectionLastRow(sheet, section, startRow, globalLastRow) {
+    if (!section) return 0;
+    if (globalLastRow < startRow) return 0;
+
+    var startCol = section.start;
+    var numCols = section.end - section.start + 1;
+    var numRows = globalLastRow - startRow + 1;
+
+    var values = sheet.getRange(startRow, startCol, numRows, numCols).getValues();
+    for (var r = values.length - 1; r >= 0; r--) {
+      for (var c = 0; c < numCols; c++) {
+        var val = String(values[r][c] == null ? '' : values[r][c]).trim();
+        if (val !== '') return startRow + r;
+      }
+    }
+    return 0;
   }
 
   /**
@@ -53,25 +77,37 @@ var utilCustomCells = (function () {
   /**
    * Applies the Data Validation rule for Field Types.
    * Rule: =SETTINGS_FIELD!$A$2:$A
+   * Also cleans up validation for empty rows at the bottom.
    */
   function _applyFieldTypeValidation(sheet, colIndex, lastRow) {
-    var numRows = lastRow - CFG.TEMPLATE_ROW + 1;
-    if (numRows < 1) return;
+    var maxRows = sheet.getMaxRows();
+    var startRow = CFG.TEMPLATE_ROW;
     
-    var range = sheet.getRange(CFG.TEMPLATE_ROW, colIndex, numRows, 1);
-    var settingsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CFG.SETTINGS_SHEET_NAME);
-    
-    if (!settingsSheet) {
-      Logger.log('[utilCustomCells] Error: Settings sheet not found: ' + CFG.SETTINGS_SHEET_NAME);
-      return;
+    if (maxRows < startRow) return;
+
+    // 1. Apply validation to the content area
+    if (lastRow >= startRow) {
+      var numRows = lastRow - startRow + 1;
+      var range = sheet.getRange(startRow, colIndex, numRows, 1);
+      var settingsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CFG.SETTINGS_SHEET_NAME);
+      
+      if (settingsSheet) {
+        var rule = SpreadsheetApp.newDataValidation()
+          .requireValueInRange(settingsSheet.getRange("A2:A"))
+          .setAllowInvalid(false)
+          .build();
+          
+        range.setDataValidation(rule);
+      }
     }
 
-    var rule = SpreadsheetApp.newDataValidation()
-      .requireValueInRange(settingsSheet.getRange("A2:A"))
-      .setAllowInvalid(false)
-      .build();
-      
-    range.setDataValidation(rule);
+    // 2. Clear validation for everything below the content area (Cleanup)
+    var cleanupStart = Math.max(startRow, lastRow + 1);
+    var cleanupNumRows = maxRows - cleanupStart + 1;
+    
+    if (cleanupNumRows > 0) {
+      sheet.getRange(cleanupStart, colIndex, cleanupNumRows, 1).clearDataValidations();
+    }
   }
 
   return {
