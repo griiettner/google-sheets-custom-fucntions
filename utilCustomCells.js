@@ -6,11 +6,13 @@ var utilCustomCells = (function () {
 
   var HEADERS = {
     TYPES: 'Types',
-    ACTIONS: 'Actions'
+    ACTIONS: 'Actions',
+    ACTIONS_RESULT: 'Actions Result'
   };
 
   /**
    * Main entry point to enforce custom cell rules across a sheet.
+   * Called by onChange and onEdit.
    */
   function applyAll(sheet) {
     if (!sheet) return;
@@ -21,7 +23,7 @@ var utilCustomCells = (function () {
     var globalLastRow = sheet.getLastRow();
     var startRow = CFG.TEMPLATE_ROW;
 
-    // 1. Calculate section-specific last row (same logic as zebra logic)
+    // 1. Calculate section-specific last row
     var primaryLastRow = _getSectionLastRow(sheet, layout.primary, startRow, globalLastRow);
 
     // 2. Find Column Indices
@@ -35,6 +37,29 @@ var utilCustomCells = (function () {
     // 4. Apply "Actions" Logic
     if (colMap.actions) {
       _applyValidation(sheet, colMap.actions, primaryLastRow, "C1:Z1");
+    }
+
+    // 5. Apply "Actions Result" Logic (Dependent Logic)
+    if (colMap.actions && colMap.actionsResult) {
+       _syncActionsResultAll(sheet, colMap.actions, colMap.actionsResult, startRow, primaryLastRow);
+    }
+  }
+
+  /**
+   * Handles real-time dependency updates when an 'Actions' cell is edited.
+   */
+  function handleEdit(ctx) {
+    var layout = LibSections.getLayout(ctx.sheet);
+    if (!layout.primary) return;
+    
+    var colMap = _getColumnMap(ctx.sheet, layout.primary);
+    if (!colMap.actions || !colMap.actionsResult) return;
+
+    if (ctx.col === colMap.actions && ctx.row >= CFG.TEMPLATE_ROW) {
+      // CLEAR CONTENT FIRST: Prevent old data from persisting with new validation rules
+      ctx.sheet.getRange(ctx.row, colMap.actionsResult).clearContent();
+      
+      _updateActionsResultCell(ctx.sheet, ctx.row, colMap.actions, colMap.actionsResult);
     }
   }
 
@@ -74,6 +99,7 @@ var utilCustomCells = (function () {
       var val = String(values[i] || '').trim();
       if (val === HEADERS.TYPES) map.types = startCol + i;
       if (val === HEADERS.ACTIONS) map.actions = startCol + i;
+      if (val === HEADERS.ACTIONS_RESULT) map.actionsResult = startCol + i;
     }
     
     return map;
@@ -81,7 +107,6 @@ var utilCustomCells = (function () {
 
   /**
    * General purpose validation applier for custom cells.
-   * Handles both vertical and horizontal ranges from the settings sheet.
    */
   function _applyValidation(sheet, colIndex, lastRow, settingsRangeA1) {
     var maxRows = sheet.getMaxRows();
@@ -89,7 +114,6 @@ var utilCustomCells = (function () {
     
     if (maxRows < startRow) return;
 
-    // 1. Apply validation to the content area
     if (lastRow >= startRow) {
       var numRows = lastRow - startRow + 1;
       var range = sheet.getRange(startRow, colIndex, numRows, 1);
@@ -105,17 +129,100 @@ var utilCustomCells = (function () {
       }
     }
 
-    // 2. Clear validation for everything below the content area (Cleanup)
     var cleanupStart = Math.max(startRow, lastRow + 1);
     var cleanupNumRows = maxRows - cleanupStart + 1;
-    
     if (cleanupNumRows > 0) {
       sheet.getRange(cleanupStart, colIndex, cleanupNumRows, 1).clearDataValidations();
     }
   }
 
+  /**
+   * Syncs the Actions Result column for all rows in the section.
+   */
+  function _syncActionsResultAll(sheet, actionsCol, resultCol, startRow, lastRow) {
+    if (lastRow < startRow) {
+       var maxRows = sheet.getMaxRows();
+       if (maxRows >= startRow) {
+         sheet.getRange(startRow, resultCol, maxRows - startRow + 1, 1).clearDataValidations();
+       }
+       return;
+    }
+
+    for (var r = startRow; r <= lastRow; r++) {
+      _updateActionsResultCell(sheet, r, actionsCol, resultCol);
+    }
+
+    var maxRows = sheet.getMaxRows();
+    if (maxRows > lastRow) {
+      sheet.getRange(lastRow + 1, resultCol, maxRows - lastRow, 1).clearDataValidations();
+    }
+  }
+
+  /**
+   * Updates a single result cell based on its action cell.
+   */
+  function _updateActionsResultCell(sheet, row, actionsCol, resultCol) {
+    var actionVal = String(sheet.getRange(row, actionsCol).getValue() || '').trim();
+    var resultCell = sheet.getRange(row, resultCol);
+    
+    if (actionVal === '') {
+      resultCell.clearDataValidations();
+      resultCell.clearContent();
+      return;
+    }
+
+    var settingsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CFG.SETTINGS_SHEET_NAME);
+    if (!settingsSheet) return;
+
+    var headers = settingsSheet.getRange("C1:Z1").getValues()[0];
+    var settingsColIndex = -1;
+    for (var i = 0; i < headers.length; i++) {
+       if (String(headers[i]).trim() === actionVal) {
+         settingsColIndex = 3 + i; 
+         break;
+       }
+    }
+
+    if (settingsColIndex === -1) {
+      resultCell.clearDataValidations();
+      return;
+    }
+
+    var type = String(settingsSheet.getRange(2, settingsColIndex).getValue() || '').toLowerCase().trim();
+    var lastSettingsRow = settingsSheet.getLastRow();
+
+    switch (type) {
+      case 'select':
+        if (lastSettingsRow >= 3) {
+          var rule = SpreadsheetApp.newDataValidation()
+            .requireValueInRange(settingsSheet.getRange(3, settingsColIndex, lastSettingsRow - 2, 1))
+            .setAllowInvalid(false)
+            .build();
+          resultCell.setDataValidation(rule);
+        } else {
+          resultCell.clearDataValidations();
+        }
+        break;
+      
+      case 'bool':
+        var rule = SpreadsheetApp.newDataValidation()
+          .requireCheckbox()
+          .build();
+        resultCell.setDataValidation(rule);
+        break;
+
+      case 'text':
+      case 'select-custom':
+      case 'disable':
+      default:
+        resultCell.clearDataValidations();
+        break;
+    }
+  }
+
   return {
-    applyAll: applyAll
+    applyAll: applyAll,
+    handleEdit: handleEdit
   };
 
 })();

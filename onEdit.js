@@ -21,6 +21,7 @@ function onEdit(e) {
   editRowTemplate(ctx);   // Handles new row initialization and separator styling
   editZebraTheme(ctx);    // Adjusts alternating row background logic
   changeCustomCells({ sheet: ctx.sheet }); // Refresh custom cell validations and cleanup logic
+  utilCustomCells.handleEdit(ctx);         // Real-time dependency (e.g. Actions -> Actions Result)
 
   // --- 2. FUNCTIONAL ROUTER (ACTION_COL) ---
   // Logic below this point is reserved for automated workflows triggered in the ACTION_COL.
