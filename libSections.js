@@ -119,12 +119,8 @@ var LibSections = (function () {
         // Header row is always sticky
         sheet.setFrozenRows(CFG.HEADER_ROW);
 
-        // Sidebar (Primary) is sticky only if there is a Secondary section to scroll against
-        if (layout.secondary) {
-            sheet.setFrozenColumns(layout.primary.end);
-        } else {
-            sheet.setFrozenColumns(0);
-        }
+        // Sidebar (Primary) - Disabled frozen columns to allow free horizontal scrolling
+        sheet.setFrozenColumns(0);
 
         // --- 2. MANAGE DELIMITERS ---
         var activeDelCols = [];

@@ -15,16 +15,7 @@ var CFG = Object.freeze({
   TERTIARY_BG: '#333333',
   TERTIARY_FG: '#ffffff',
 
-  ACTION_COL: 4,                         // Column D
-  DEPENDENT_COL: 5,                       // Column E
   SETTINGS_SHEET_NAME: 'SETTINGS_FIELD',
-  SETTINGS_START_COL: 3,              // Column C
-  CUSTOM_SELECT: 'Custom Select',
-  CUSTOM_OPTIONS: 'Options Match',
-  TEXT_NONE: 'None',
-  TEXT_CLICK: 'Click',
-  TEXT_PLAIN: 'Text Plain',
-  TEXT_MATCH: 'Text Match',
   DATA_START_ROW: 2
 });
 
