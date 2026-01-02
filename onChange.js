@@ -35,10 +35,11 @@ function onChange(e) {
     case 'REMOVE_COLUMN':
     case 'REMOVE_ROW':
     case 'INSERT_ROW':
-      Logger.log('[onChange] Recalculating section layout after structural change...');
+    case 'OTHER': // This catches merges and unmerges
+      Logger.log('[onChange] Recalculating section layout or refreshing styles...');
       changeHeaderThemeAll(ctx); // Re-enforce LibSections & Headers
-      changeZebraThemeAll(ctx);  // Adjust zebra striping frequency
-      changeRows();              // Ensure new rows have correct heights
+      changeZebraThemeAll(ctx);  // Adjust zebra/separator styles immediately
+      changeRows();              // Ensure correct row heights
       break;
 
     default:

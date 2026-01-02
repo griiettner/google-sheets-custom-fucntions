@@ -70,41 +70,61 @@ var LibRows = (function () {
         
         if (maxRows < startRow) return;
 
-        // 1. Fetch current backgrounds
+        // 1. Fetch current visual state
         var totalRowsToProcess = maxRows - startRow + 1;
         var range = sheet.getRange(startRow, startCol, totalRowsToProcess, numCols);
+        
         var backgrounds = range.getBackgrounds();
+        var alignments = range.getHorizontalAlignments();
+        var weights = range.getFontWeights();
 
-        // 2. Resolve Config
-        var sepColor = (SEPARATOR[type + '_BG'] || '').toLowerCase();
+        // 2. Identify Merged Ranges (Separators)
+        var mergedRanges = range.getMergedRanges();
+        var isSepRow = {};
+        mergedRanges.forEach(function(m) {
+           for (var r = m.getRow(); r <= m.getLastRow(); r++) {
+             isSepRow[r] = true;
+           }
+        });
+
+        // 3. Resolve Config
+        var separatorBg = (SEPARATOR[type + '_BG'] || '').toLowerCase();
         var colorA = (ZEBRA[type + '_A'] || '#ffffff').toLowerCase();
         var colorB = (ZEBRA[type + '_B'] || '#ffffff').toLowerCase();
 
         var changed = false;
 
-        // 3. Pattern Generation
+        // 4. Pattern Generation & Alignment Enforcement
         for (var r = 0; r < totalRowsToProcess; r++) {
           var rowNum = startRow + r;
+          var isSeparator = isSepRow[rowNum];
           var currentBg = (backgrounds[r][0] || '#ffffff').toLowerCase();
 
-          // CLEANUP EXTRA ROWS
+          // A. ALIGNMENT & WEIGHT (Enforce on ALL rows to keep them consistent)
+          var targetAlign = isSeparator ? 'center' : 'left';
+          var targetWeight = isSeparator ? 'bold' : 'normal';
+
+          if (alignments[r][0] !== targetAlign || weights[r][0] !== targetWeight) {
+             for (var c = 0; c < numCols; c++) {
+               alignments[r][c] = targetAlign;
+               weights[r][c] = targetWeight;
+             }
+             changed = true;
+          }
+
+          // B. CLEANUP EXTRA ROWS
           if (rowNum > lastRow) {
-            if (currentBg !== '#ffffff' && currentBg !== 'white') {
+            if (!isSeparator && currentBg !== '#ffffff' && currentBg !== 'white') {
                 for (var c = 0; c < numCols; c++) backgrounds[r][c] = '#ffffff';
                 changed = true;
             }
             continue;
           }
 
-          // SKIP SEPARATORS
-          if (sepColor && currentBg === sepColor) {
-            continue; 
-          }
+          // C. APPLY COLORS
+          var targetBg = isSeparator ? separatorBg : (((r + startRow) % 2 === 0) ? colorA : colorB);
 
-          // APPLY ZEBRA
-          var targetBg = ((r + startRow) % 2 === 0) ? colorA : colorB;
-
-          if (currentBg !== targetBg) {
+          if (targetBg && currentBg !== targetBg) {
             for (var c = 0; c < numCols; c++) {
               backgrounds[r][c] = targetBg;
             }
@@ -112,9 +132,11 @@ var LibRows = (function () {
           }
         }
 
-        // 4. Update
+        // 5. Update UI in Batch
         if (changed) {
           range.setBackgrounds(backgrounds);
+          range.setHorizontalAlignments(alignments);
+          range.setFontWeights(weights);
           SpreadsheetApp.flush();
         }
     } catch (e) {

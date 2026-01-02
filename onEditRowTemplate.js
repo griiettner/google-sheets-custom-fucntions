@@ -35,35 +35,50 @@ function editRowTemplate(ctx) {
   }
 
   // --- 2. DYNAMIC SECTION SEPARATORS ---
-  // If the user merges cells COMPLETELY WITHIN a single section, we style it as a visual separator.
   if (ctx.range.isPartOfMerge()) {
-    var bg, fg;
-    
-    // Choose the palette matching the section the merge sits in.
-    switch (validation.section) {
-      case 'PRIMARY':
-        bg = SEPARATOR.PRIMARY_BG;
-        fg = SEPARATOR.PRIMARY_FG;
-        break;
-      case 'SECONDARY':
-        bg = SEPARATOR.SECONDARY_BG;
-        fg = SEPARATOR.SECONDARY_FG;
-        break;
-      case 'TERTIARY':
-        bg = SEPARATOR.TERTIARY_BG;
-        fg = SEPARATOR.TERTIARY_FG;
-        break;
-    }
+    var sectionName = validation.section;
+    var layout = LibSections.getLayout(sheet);
+    var section = layout[sectionName.toLowerCase()];
 
-    if (bg && fg) {
-      ctx.range.setBackground(bg)
-        .setFontColor(fg)
-        .setFontWeight('bold')
-        .setHorizontalAlignment('left')
-        .setVerticalAlignment('middle');
+    if (section) {
+      var cellVal = String(ctx.range.getValue() || '').trim();
+      var currentBg = String(ctx.range.getBackground() || '').toLowerCase();
+      
+      // REVERSION LOGIC: If a STYLED separator is cleared, revert it.
+      var isSeparatorStyled = (
+        currentBg === String(SEPARATOR.PRIMARY_BG).toLowerCase() ||
+        currentBg === String(SEPARATOR.SECONDARY_BG).toLowerCase() ||
+        currentBg === String(SEPARATOR.TERTIARY_BG).toLowerCase()
+      );
+
+      if (cellVal === '' && isSeparatorStyled) {
+        var fullSectionRowRange = sheet.getRange(row, section.start, 1, section.end - section.start + 1);
+        fullSectionRowRange.breakApart()
+                 .setBackground(null)
+                 .setFontColor(null)
+                 .setFontWeight('normal')
+                 .setHorizontalAlignment('left')
+                 .setVerticalAlignment('middle')
+                 .setBorder(true, true, true, true, true, true, '#ffffff', SpreadsheetApp.BorderStyle.SOLID);
+        return; 
+      }
+
+      // Choose the palette matching the section the merge sits in.
+      var bg, fg;
+      switch (sectionName) {
+        case 'PRIMARY':   bg = SEPARATOR.PRIMARY_BG;   fg = SEPARATOR.PRIMARY_FG;   break;
+        case 'SECONDARY': bg = SEPARATOR.SECONDARY_BG; fg = SEPARATOR.SECONDARY_FG; break;
+        case 'TERTIARY':  bg = SEPARATOR.TERTIARY_BG;  fg = SEPARATOR.TERTIARY_FG;  break;
+      }
+
+      if (bg && fg) {
+        ctx.range.setBackground(bg)
+          .setFontColor(fg)
+          .setFontWeight('bold')
+          .setHorizontalAlignment('center')
+          .setVerticalAlignment('middle');
+      }
     }
-    
-    // Stop: separators do not inherit normal row validation/formatting
     return;
   }
 
