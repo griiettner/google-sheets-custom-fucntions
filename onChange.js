@@ -25,6 +25,7 @@ function onChange(e) {
       changeRows();           // Set standard row heights (Header 40px, Data 30px)
       changeHeaderThemeAll(ctx); // Apply Section Library themes
       changeZebraThemeAll(ctx);  // Apply initial zebra pattern
+      changeCustomCellsAll(ctx); // Apply custom cell validations
       break;
 
     /**
@@ -39,6 +40,7 @@ function onChange(e) {
       Logger.log('[onChange] Recalculating section layout or refreshing styles...');
       changeHeaderThemeAll(ctx); // Re-enforce LibSections & Headers
       changeZebraThemeAll(ctx);  // Adjust zebra/separator styles immediately
+      changeCustomCellsAll(ctx); // Refresh custom cell validations
       changeRows();              // Ensure correct row heights
       break;
 
