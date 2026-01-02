@@ -5,7 +5,8 @@
 var utilCustomCells = (function () {
 
   var HEADERS = {
-    TYPES: 'Types'
+    TYPES: 'Types',
+    ACTIONS: 'Actions'
   };
 
   /**
@@ -28,10 +29,13 @@ var utilCustomCells = (function () {
     
     // 3. Apply "Types" (FIELD_TYPE) Logic
     if (colMap.types) {
-      _applyFieldTypeValidation(sheet, colMap.types, primaryLastRow);
+      _applyValidation(sheet, colMap.types, primaryLastRow, "A2:A");
     }
-    
-    // Space for future custom cells...
+
+    // 4. Apply "Actions" Logic
+    if (colMap.actions) {
+      _applyValidation(sheet, colMap.actions, primaryLastRow, "C1:Z1");
+    }
   }
 
   /**
@@ -69,17 +73,17 @@ var utilCustomCells = (function () {
     for (var i = 0; i < values.length; i++) {
       var val = String(values[i] || '').trim();
       if (val === HEADERS.TYPES) map.types = startCol + i;
+      if (val === HEADERS.ACTIONS) map.actions = startCol + i;
     }
     
     return map;
   }
 
   /**
-   * Applies the Data Validation rule for Field Types.
-   * Rule: =SETTINGS_FIELD!$A$2:$A
-   * Also cleans up validation for empty rows at the bottom.
+   * General purpose validation applier for custom cells.
+   * Handles both vertical and horizontal ranges from the settings sheet.
    */
-  function _applyFieldTypeValidation(sheet, colIndex, lastRow) {
+  function _applyValidation(sheet, colIndex, lastRow, settingsRangeA1) {
     var maxRows = sheet.getMaxRows();
     var startRow = CFG.TEMPLATE_ROW;
     
@@ -93,7 +97,7 @@ var utilCustomCells = (function () {
       
       if (settingsSheet) {
         var rule = SpreadsheetApp.newDataValidation()
-          .requireValueInRange(settingsSheet.getRange("A2:A"))
+          .requireValueInRange(settingsSheet.getRange(settingsRangeA1))
           .setAllowInvalid(false)
           .build();
           
