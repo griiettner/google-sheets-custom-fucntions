@@ -161,7 +161,7 @@ var LibRows = (function () {
     if (!sheet) return;
     var lastRow = sheet.getLastRow();
     var lastCol = sheet.getLastColumn();
-    var startRow = CFG.TEMPLATE_ROW;
+    var startRow = CFG.DATA_START_ROW;
 
     if (lastRow >= startRow && lastCol > 0) {
       sheet.getRange(startRow, 1, lastRow - startRow + 1, lastCol).setBackground(null);

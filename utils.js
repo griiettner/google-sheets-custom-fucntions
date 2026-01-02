@@ -12,23 +12,7 @@ function utilNormalizeText(v) {
   return String(v == null ? '' : v).trim();
 }
 
-/**
- * Maps section names (including legacy aliases) to their background/foreground color pairs.
- */
-function utilGetTheme(name) {
-  var nameClean = utilNormalizeText(name).toUpperCase();
-  
-  if (nameClean === 'SECONDARY' || nameClean === 'OPT') {
-    return { bg: CFG.SECONDARY_BG, fg: CFG.SECONDARY_FG };
-  }
-  
-  if (nameClean === 'TERTIARY' || nameClean === 'GREY') {
-    return { bg: CFG.TERTIARY_BG, fg: CFG.TERTIARY_FG };
-  }
-  
-  // Default to Primary
-  return { bg: CFG.PRIMARY_BG, fg: CFG.PRIMARY_FG };
-}
+
 
 /**
  * Low-level function to apply the premium header look:
