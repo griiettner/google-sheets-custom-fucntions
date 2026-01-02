@@ -17,7 +17,7 @@ var LibRows = (function () {
     
     var layout = LibSections.getLayout(sheet);
     var globalLastRow = sheet.getLastRow();
-    var startRow = CFG.TEMPLATE_ROW; 
+    var startRow = CFG.DATA_START_ROW; 
     
     if (globalLastRow < startRow) return;
 

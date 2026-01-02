@@ -48,6 +48,7 @@ function changeRowsOnSheet_(sheet) {
     
     dataRange.setFontFamily(CFG.FONT_FAMILY)
       .setVerticalAlignment('middle')
-      .setHorizontalAlignment('left');
+      .setHorizontalAlignment('left')
+      .setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
   }
 }

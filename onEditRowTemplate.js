@@ -4,7 +4,6 @@
  * Responsibilities:
  * 1. Boundary Enforcement: Blocks merges across section dividers.
  * 2. Section Separators: Automatically styles merged horizontal ranges as color-coded separators.
- * 3. Data Validation: Automatically copies dropdowns/logic from the Template Row to new rows.
  */
 function editRowTemplate(ctx) {
   var sheet = ctx.sheet;
@@ -63,10 +62,8 @@ function editRowTemplate(ctx) {
                  .setVerticalAlignment('middle')
                  .setBorder(true, true, true, true, true, true, '#ffffff', SpreadsheetApp.BorderStyle.SOLID);
         
-        // 2. Restore: Force re-initialization of the row columns from the Template Row.
-        // This restores dropdowns, validation, and logic to the newly unmerged cells.
-        // CRITICAL FIX: Only apply to the current section to avoid affecting other sections.
-        utilApplyRowTemplate_(sheet, CFG.TEMPLATE_ROW, row, section.start, section.end);
+        // 2. Cleanup: Clear any content that might have been left over (should be empty already)
+        fullSectionRowRange.clearContent();
         
         return; 
       }
@@ -89,22 +86,4 @@ function editRowTemplate(ctx) {
     }
     return;
   }
-
-  // --- 3. AUTO-INITIALIZATION OF NEW ROWS ---
-  // If the row lacks data validation in the 'template check' column, it's a new row.
-  // We sync its formatting and logic with the global Template Row definition.
-  var checkCol = CFG.TEMPLATE_CHECK_COL;
-  var templateRow = CFG.TEMPLATE_ROW;
-
-  // Ensure the template row itself exists
-  if (sheet.getLastRow() < templateRow) return;
-
-  var templateDv = sheet.getRange(templateRow, checkCol).getDataValidation();
-  if (!templateDv) return;
-
-  var currentDv = sheet.getRange(row, checkCol).getDataValidation();
-  if (currentDv) return; // Already initialized
-
-  // Synchronize the row formatting and logic (Full row for new initialization)
-  utilApplyRowTemplate_(sheet, templateRow, row, 1, lastCol);
 }

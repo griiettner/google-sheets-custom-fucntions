@@ -22,7 +22,7 @@ var utilCustomCells = (function () {
     if (!layout.primary) return;
 
     var globalLastRow = sheet.getLastRow();
-    var startRow = CFG.TEMPLATE_ROW;
+    var startRow = CFG.DATA_START_ROW;
 
     // 1. Calculate section-specific last row
     var primaryLastRow = _getSectionLastRow(sheet, layout.primary, startRow, globalLastRow);
@@ -61,7 +61,7 @@ var utilCustomCells = (function () {
     var colMap = _getColumnMap(ctx.sheet, layout.primary);
     if (!colMap.actions || !colMap.actionsResult) return;
 
-    if (ctx.col === colMap.actions && ctx.row >= CFG.TEMPLATE_ROW) {
+    if (ctx.col === colMap.actions && ctx.row >= CFG.DATA_START_ROW) {
       // CLEAR CONTENT FIRST: Prevent old data from persisting with new validation rules
       var resultCell = ctx.sheet.getRange(ctx.row, colMap.actionsResult);
       resultCell.clearContent().setNote(''); // Clear note as well for fresh setup
@@ -118,7 +118,7 @@ var utilCustomCells = (function () {
    */
   function _applyValidation(sheet, colIndex, lastRow, settingsRangeA1) {
     var maxRows = sheet.getMaxRows();
-    var startRow = CFG.TEMPLATE_ROW;
+    var startRow = CFG.DATA_START_ROW;
     
     if (maxRows < startRow) return;
 
@@ -149,7 +149,7 @@ var utilCustomCells = (function () {
    */
   function _applyCheckbox(sheet, colIndex, lastRow) {
     var maxRows = sheet.getMaxRows();
-    var startRow = CFG.TEMPLATE_ROW;
+    var startRow = CFG.DATA_START_ROW;
     
     if (maxRows < startRow) return;
 
@@ -291,7 +291,7 @@ var utilCustomCells = (function () {
     if (sourceCol) {
       try {
         var rule = SpreadsheetApp.newDataValidation()
-          .requireValueInRange(sheet.getRange(sourceCol + CFG.TEMPLATE_ROW + ":" + sourceCol))
+          .requireValueInRange(sheet.getRange(sourceCol + CFG.DATA_START_ROW + ":" + sourceCol))
           .setAllowInvalid(false)
           .build();
         resultCell.setDataValidation(rule);
@@ -309,7 +309,7 @@ var utilCustomCells = (function () {
 
     if (sourceCol) {
       try {
-        var range = sheet.getRange(sourceCol + CFG.TEMPLATE_ROW + ":" + sourceCol);
+        var range = sheet.getRange(sourceCol + CFG.DATA_START_ROW + ":" + sourceCol);
         var values = range.getValues();
         var options = [];
         

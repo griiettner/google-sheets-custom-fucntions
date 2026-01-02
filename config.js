@@ -25,9 +25,7 @@ var CFG = Object.freeze({
   TEXT_CLICK: 'Click',
   TEXT_PLAIN: 'Text Plain',
   TEXT_MATCH: 'Text Match',
-  TEMPLATE_ROW: 2,
-  TEMPLATE_CHECK_COL: 2,
-
+  DATA_START_ROW: 2
 });
 
 var ZEBRA = Object.freeze({

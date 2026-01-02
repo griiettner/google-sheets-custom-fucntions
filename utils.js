@@ -55,27 +55,4 @@ function utilClearHeaderStyle(range) {
     .setVerticalAlignment('middle');
 }
 
-/**
- * Deep copies formatting and data validation from a template row to a target row within specific column bounds.
- * Used for initializing new rows and restoring section columns after separator removal.
- */
-function utilApplyRowTemplate_(sheet, templateRow, targetRow, startCol, endCol) {
-  if (!sheet || !startCol || !endCol) return;
-  
-  var numCols = endCol - startCol + 1;
-  var templateRange = sheet.getRange(templateRow, startCol, 1, numCols);
-  var targetRange = sheet.getRange(targetRow, startCol, 1, numCols);
 
-  // Preserve user-entered data
-  var existingValues = targetRange.getValues();
-
-  // 1) Physical Style Transfer (Restricted to section boundaries)
-  templateRange.copyFormatToRange(sheet, startCol, endCol, targetRow, targetRow);
-
-  // 2) Functional Transfer: Copy dropdowns and rules
-  var dvs = templateRange.getDataValidations(); 
-  targetRange.setDataValidations(dvs);
-
-  // 3) Restore Data
-  targetRange.setValues(existingValues);
-}
