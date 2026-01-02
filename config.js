@@ -42,11 +42,11 @@ var ZEBRA = Object.freeze({
 });
 
 var SEPARATOR = Object.freeze({
-  PRIMARY_BG: '#6692ad',
+  PRIMARY_BG: '#80a4bb',
   PRIMARY_FG: '#000000',
-  SECONDARY_BG: '#de6e68',
+  SECONDARY_BG: '#E89893',
   SECONDARY_FG: '#000000',
-  TERTIARY_BG: '#707070',
+  TERTIARY_BG: '#919191',
   TERTIARY_FG: '#000000',
 });
 
