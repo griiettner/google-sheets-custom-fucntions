@@ -7,7 +7,8 @@ var utilCustomCells = (function () {
   var HEADERS = {
     TYPES: 'Types',
     ACTIONS: 'Actions',
-    ACTIONS_RESULT: 'Actions Result'
+    ACTIONS_RESULT: 'Actions Result',
+    REQUIRED: 'Required'
   };
 
   /**
@@ -43,6 +44,11 @@ var utilCustomCells = (function () {
     if (colMap.actions && colMap.actionsResult) {
        _syncActionsResultAll(sheet, colMap.actions, colMap.actionsResult, startRow, primaryLastRow);
     }
+
+    // 6. Apply "Required" Logic
+    if (colMap.required) {
+      _applyCheckbox(sheet, colMap.required, primaryLastRow);
+    }
   }
 
   /**
@@ -57,9 +63,10 @@ var utilCustomCells = (function () {
 
     if (ctx.col === colMap.actions && ctx.row >= CFG.TEMPLATE_ROW) {
       // CLEAR CONTENT FIRST: Prevent old data from persisting with new validation rules
-      ctx.sheet.getRange(ctx.row, colMap.actionsResult).clearContent();
+      var resultCell = ctx.sheet.getRange(ctx.row, colMap.actionsResult);
+      resultCell.clearContent().setNote(''); // Clear note as well for fresh setup
       
-      _updateActionsResultCell(ctx.sheet, ctx.row, colMap.actions, colMap.actionsResult);
+      _updateActionsResultCell(ctx.sheet, ctx.row, colMap.actions, colMap.actionsResult, true);
     }
   }
 
@@ -100,13 +107,14 @@ var utilCustomCells = (function () {
       if (val === HEADERS.TYPES) map.types = startCol + i;
       if (val === HEADERS.ACTIONS) map.actions = startCol + i;
       if (val === HEADERS.ACTIONS_RESULT) map.actionsResult = startCol + i;
+      if (val === HEADERS.REQUIRED) map.required = startCol + i;
     }
     
     return map;
   }
 
   /**
-   * General purpose validation applier for custom cells.
+   * General purpose validation applier for custom cells (Types, Actions).
    */
   function _applyValidation(sheet, colIndex, lastRow, settingsRangeA1) {
     var maxRows = sheet.getMaxRows();
@@ -137,37 +145,62 @@ var utilCustomCells = (function () {
   }
 
   /**
+   * Applies checkbox validation to the given column within the section bounds.
+   */
+  function _applyCheckbox(sheet, colIndex, lastRow) {
+    var maxRows = sheet.getMaxRows();
+    var startRow = CFG.TEMPLATE_ROW;
+    
+    if (maxRows < startRow) return;
+
+    if (lastRow >= startRow) {
+      var numRows = lastRow - startRow + 1;
+      var range = sheet.getRange(startRow, colIndex, numRows, 1);
+      var rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+      range.setDataValidation(rule);
+    }
+
+    var cleanupStart = Math.max(startRow, lastRow + 1);
+    var cleanupNumRows = maxRows - cleanupStart + 1;
+    if (cleanupNumRows > 0) {
+      sheet.getRange(cleanupStart, colIndex, cleanupNumRows, 1).clearDataValidations();
+    }
+  }
+
+  /**
    * Syncs the Actions Result column for all rows in the section.
    */
   function _syncActionsResultAll(sheet, actionsCol, resultCol, startRow, lastRow) {
     if (lastRow < startRow) {
        var maxRows = sheet.getMaxRows();
        if (maxRows >= startRow) {
-         sheet.getRange(startRow, resultCol, maxRows - startRow + 1, 1).clearDataValidations();
+         sheet.getRange(startRow, resultCol, maxRows - startRow + 1, 1).clearDataValidations().clearContent().setNote('');
        }
        return;
     }
 
     for (var r = startRow; r <= lastRow; r++) {
-      _updateActionsResultCell(sheet, r, actionsCol, resultCol);
+      _updateActionsResultCell(sheet, r, actionsCol, resultCol, false);
     }
 
     var maxRows = sheet.getMaxRows();
     if (maxRows > lastRow) {
-      sheet.getRange(lastRow + 1, resultCol, maxRows - lastRow, 1).clearDataValidations();
+      sheet.getRange(lastRow + 1, resultCol, maxRows - lastRow, 1).clearDataValidations().clearContent().setNote('');
     }
   }
 
   /**
    * Updates a single result cell based on its action cell.
+   * @param {Boolean} allowPrompt If true, can show UI prompts (onEdit flow).
    */
-  function _updateActionsResultCell(sheet, row, actionsCol, resultCol) {
+  function _updateActionsResultCell(sheet, row, actionsCol, resultCol, allowPrompt) {
     var actionVal = String(sheet.getRange(row, actionsCol).getValue() || '').trim();
     var resultCell = sheet.getRange(row, resultCol);
     
     if (actionVal === '') {
       resultCell.clearDataValidations();
       resultCell.clearContent();
+      resultCell.setNote('');
       return;
     }
 
@@ -199,24 +232,61 @@ var utilCustomCells = (function () {
             .setAllowInvalid(false)
             .build();
           resultCell.setDataValidation(rule);
-        } else {
-          resultCell.clearDataValidations();
         }
         break;
       
       case 'bool':
-        var rule = SpreadsheetApp.newDataValidation()
-          .requireCheckbox()
-          .build();
+        var rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
         resultCell.setDataValidation(rule);
         break;
 
-      case 'text':
       case 'select-custom':
+        _handleSelectCustom(sheet, row, resultCell, allowPrompt);
+        break;
+
+      case 'text':
       case 'disable':
       default:
         resultCell.clearDataValidations();
         break;
+    }
+  }
+
+  /**
+   * Helper to handle 'select-custom' prompting and persistence.
+   */
+  function _handleSelectCustom(sheet, row, resultCell, allowPrompt) {
+    var note = resultCell.getNote();
+    var sourceCol = '';
+
+    // If already persisted, reuse it
+    if (note.indexOf('sourceCol:') === 0) {
+      sourceCol = note.replace('sourceCol:', '').trim();
+    } else if (allowPrompt) {
+      // Prompt user for column letter
+      var ui = SpreadsheetApp.getUi();
+      var response = ui.prompt('Select Custom Range', 
+        'Please enter the COLUMN LETTER (e.g. B, F, K) containing the options for this dropdown:', 
+        ui.ButtonSet.OK_CANCEL);
+
+      if (response.getSelectedButton() == ui.Button.OK) {
+        sourceCol = response.getResponseText().toUpperCase().replace(/[^A-Z]/g, '');
+        if (sourceCol) {
+          resultCell.setNote('sourceCol:' + sourceCol);
+        }
+      }
+    }
+
+    if (sourceCol) {
+      try {
+        var rule = SpreadsheetApp.newDataValidation()
+          .requireValueInRange(sheet.getRange(sourceCol + CFG.TEMPLATE_ROW + ":" + sourceCol))
+          .setAllowInvalid(false)
+          .build();
+        resultCell.setDataValidation(rule);
+      } catch (e) {
+        Logger.log('[utilCustomCells] select-custom error on col ' + sourceCol + ': ' + e.message);
+      }
     }
   }
 
